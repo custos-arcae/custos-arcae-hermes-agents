@@ -45,7 +45,9 @@ jobs:
           python-version: "3.12"
 
       - name: Create isolated 3.12 environment
-        run: uv venv --python 3.12
+        # setup-uv@v5 already creates/activates a .venv for python-version; --clear
+        # replaces it so this step does not collide and fail the job (exit 2).
+        run: uv venv --python 3.12 --clear
 
       - name: Install validation dependencies
         run: uv pip install pytest pytest-asyncio pyyaml jsonschema
