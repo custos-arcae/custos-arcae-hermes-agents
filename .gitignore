@@ -1,0 +1,105 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+# Whole PyCharm project directory stays on the operator's machine: it carries
+# absolute local paths, run configurations and reviewer identities, and is not
+# part of the controlled artefact set.
+.idea/
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Testing / Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Type checkers
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# --- Ansible / infrastructure artefacts -------------------------------------
+# Local Ansible working directories created by ansible.cfg (fact cache, control
+# sockets, tmp, run log). Never commit these: they leak host names and timing.
+ansible/.ansible/
+ansible/collections/
+ansible/*.retry
+
+# SSH known-hosts stores referenced by ansible.cfg. Populated per-environment
+# by the operator, never shared via Git (a leaked known_hosts file is a
+# fingerprint of the estate).
+.ssh-known-hosts/
+ansible/.ssh-known-hosts/
+
+# Ansible Vault password files and any stray vault-encrypted file that was not
+# explicitly added. A vault file is only committable when its key owner is
+# documented in a change plan; the default is to ignore.
+.vault-password
+.vault-password.*
+*-vault.yml
+*-vault.yaml
+vault-password*
+
+# Firmware catalogues, SCP exports, and other provisioning artefacts that are
+# large, site-specific, and often carry device serial numbers.
+provisioning/**/*.cab
+provisioning/**/*.xml
+provisioning/**/scp-*.xml
+*.cab
+Catalog.xml
+
+# Evidence stores. Verification evidence (console captures, omreport output,
+# SCP exports, vendor case IDs) belongs in the restricted evidence store named
+# in the change plan, NOT in Git. See docs/runbooks/commission-dell-host.md §6.
+docs/change-plans/evidence/
+evidence/
+*.evidence
+
+# Draft change plans. A plan is committed only when it is filed for approval;
+# drafts stay on the operator's machine.
+docs/change-plans/DRAFT-*
+docs/change-plans/*-draft.md
+
+# Editor swap / backup files that could leak in-progress secrets.
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+
+# --- Hermes agent profile config ---------------------------------------------
+# Real config.yaml contains hostnames, IPs, and vault references.
+# Only config.example.yaml is committed.
+profiles/*/config.yaml
+
+# --- uv lockfiles (commit these; listed here for clarity) --------------------
+# uv.lock IS committed. Do not add it to .gitignore.
+
+# --- Python build artefacts in mcp-servers ------------------------------------
+mcp-servers/**/*.egg-info/
+mcp-servers/**/dist/
+mcp-servers/**/build/
+mcp-servers/**/__pycache__/

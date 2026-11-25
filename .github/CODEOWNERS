@@ -1,0 +1,19 @@
+# CODEOWNERS — custos-arcae-hermes-agents
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+*                               @custos-arcae/infra-ops
+
+# Policy and governance files — two-reviewer rule (see SCOPE.md)
+policies/approval-gates.yaml    @custos-arcae/infra-ops @custos-arcae/security
+policies/autonomous-actions.yaml @custos-arcae/infra-ops @custos-arcae/security
+policies/cross-project-isolation.yaml @custos-arcae/security
+
+# Agent autonomy expansion — always requires security sign-off
+agents/*/policy.yaml            @custos-arcae/infra-ops @custos-arcae/security
+
+# MCP server code
+mcp-servers/                    @custos-arcae/infra-ops
+
+# CI / CD
+.github/workflows/              @custos-arcae/infra-ops

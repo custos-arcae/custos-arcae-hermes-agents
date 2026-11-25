@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-config.schema.json",
+  "title": "Agent Policy Configuration",
+  "description": "Validates agents/<agent-name>/policy.yaml — the autonomy policy for a single Hermes agent.",
+  "type": "object",
+  "required": ["agent", "version", "autonomy", "escalation"],
+  "additionalProperties": true,
+  "properties": {
+    "agent": {
+      "type": "string",
+      "enum": [
+        "infra-monitor",
+        "patch-orchestrator",
+        "backup-verifier",
+        "capacity-planner",
+        "alert-router",
+        "audit-logger"
+      ],
+      "description": "Must match the directory name under agents/."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "autonomy": {
+      "type": "object",
+      "required": ["autonomous", "notify", "approve", "forbidden"],
+      "additionalProperties": false,
+      "properties": {
+        "autonomous": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/autonomy_entry" },
+          "description": "Actions executable without human approval."
+        },
+        "notify": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/autonomy_entry" },
+          "description": "Actions executed then reported to the operator."
+        },
+        "approve": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/autonomy_entry" },
+          "description": "Actions requiring explicit human sign-off before execution."
+        },
+        "forbidden": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 10 },
+          "description": "Actions permanently denied to this agent."
+        }
+      }
+    },
+    "escalation": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "escalation_timeout": {
+          "type": "string",
+          "pattern": "^[0-9]+[smhd]$",
+          "description": "Duration after which an unacknowledged critical alert is re-escalated."
+        }
+      },
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["human-operator", "alert-router", "audit-logger", "security-reviewer"]
+      },
+      "description": "Maps trigger conditions to escalation targets. escalation_timeout is a config value, not a target."
+    },
+    "thresholds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/threshold" },
+      "description": "Metric thresholds that trigger alerts."
+    }
+  },
+
+  "$defs": {
+    "autonomy_entry": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "tool": { "type": "string", "description": "MCP tool name (must exist in policies/tool-access.yaml)." },
+        "action": { "type": "string", "description": "Named action (for agents that do not call MCP tools directly)." },
+        "scope": { "type": "string", "enum": ["read-only", "governed"] },
+        "description": { "type": "string", "minLength": 10 },
+        "requires": { "type": "string", "description": "Preconditions that must be satisfied before execution." }
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "required": ["metric"],
+      "anyOf": [
+        { "required": ["severity"], "description": "Single-severity threshold (operator + value or soft/hard limit)." },
+        { "required": ["warning", "critical"], "description": "Dual-numeric threshold (warning and critical levels as numbers)." }
+      ],
+      "properties": {
+        "metric": { "type": "string" },
+        "operator": { "type": "string", "enum": ["<", ">", "<=", ">=", "=="] },
+        "value": { "type": "number" },
+        "warning": { "type": "number" },
+        "critical": { "type": "number" },
+        "soft_limit": { "type": "integer" },
+        "hard_limit": { "type": "integer" },
+        "duration": { "type": "string", "pattern": "^[0-9]+[smhd]$" },
+        "severity": { "type": "string", "enum": ["critical", "warning", "info"] },
+        "repeat_interval": { "type": "string", "pattern": "^[0-9]+[smhd]$" }
+      }
+    }
+  }
+}

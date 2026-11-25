@@ -1,0 +1,38 @@
+# patch-orchestrator — autonomy policy
+# Schema: schemas/agent-config.schema.json
+
+agent: patch-orchestrator
+version: 1
+
+autonomy:
+  autonomous:
+    - tool: host_health
+      scope: read-only
+      description: Collect pre- and post-patch health data
+    - tool: proxmox_status
+      scope: read-only
+      description: Check VM/CT state before scheduling a patch window
+
+  notify: []
+
+  approve:
+    - action: apply_patch
+      description: Install a package update on a managed host
+      requires: maintenance_window + rollback_plan + operator_signoff
+    - action: schedule_reboot
+      description: Reboot a host after patching
+      requires: operator_signoff + no_active_vms
+    - action: execute_rollback
+      description: Revert a failed patch to the previous version
+      requires: operator_signoff
+
+  forbidden:
+    - Apply kernel patches outside a scheduled maintenance window
+    - Patch any host running production workloads without a live-migration plan
+    - Delete or modify backup data
+    - Bypass approval gates under any circumstance
+
+escalation:
+  on_patch_failure: human-operator
+  on_rollback_failure: human-operator
+  on_window_exceeded: human-operator

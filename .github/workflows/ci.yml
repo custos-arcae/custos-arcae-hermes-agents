@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-type:
+    name: Lint & type-check (ca-mcp-server)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync MCP server (frozen, reproducible lock)
+        working-directory: mcp-servers/ca-mcp-server
+        run: uv sync --frozen --extra dev
+
+      - name: Ruff lint
+        working-directory: mcp-servers/ca-mcp-server
+        run: uv run ruff check src tests
+
+      - name: Mypy
+        working-directory: mcp-servers/ca-mcp-server
+        run: uv run mypy src
+
+  policy-validation:
+    name: Policy YAML → JSON Schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create isolated 3.12 environment
+        run: uv venv --python 3.12
+
+      - name: Install validation dependencies
+        run: uv pip install pytest pytest-asyncio pyyaml jsonschema
+
+      - name: Run policy conformance tests
+        run: uv run pytest tests/unit -v
+
+  mcp-server-tests:
+    name: MCP server unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sync MCP server with dev deps (frozen, reproducible lock)
+        working-directory: mcp-servers/ca-mcp-server
+        run: uv sync --frozen --extra dev
+
+      - name: Run tests
+        working-directory: mcp-servers/ca-mcp-server
+        run: uv run pytest tests -v

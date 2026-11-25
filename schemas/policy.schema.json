@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "policy.schema.json",
+  "title": "Hermes Policy File",
+  "description": "Validates all files under policies/ (approval-gates, autonomous-actions, escalation-matrix, cross-project-isolation).",
+  "type": "object",
+  "required": ["version"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema version; bump when the structure changes."
+    }
+  },
+
+  "$defs": {
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "warning", "info"]
+    },
+
+    "autonomy_level": {
+      "type": "string",
+      "enum": ["autonomous", "notify", "approve", "forbidden"],
+      "description": "autonomous: no human needed. notify: execute then inform. approve: wait for sign-off. forbidden: never execute."
+    },
+
+    "agent_name": {
+      "type": "string",
+      "enum": [
+        "infra-monitor",
+        "patch-orchestrator",
+        "backup-verifier",
+        "capacity-planner",
+        "alert-router",
+        "audit-logger"
+      ]
+    },
+
+    "channel": {
+      "type": "string",
+      "enum": ["alert-router", "audit-logger", "direct"]
+    },
+
+    "gate": {
+      "type": "object",
+      "required": ["id", "action", "reason", "approver"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "action": { "type": "string", "minLength": 10 },
+        "reason": { "type": "string", "minLength": 10 },
+        "approver": { "type": "string" },
+        "requires": { "type": "string" }
+      }
+    },
+
+    "escalation_rule": {
+      "type": "object",
+      "required": ["trigger", "severity", "notify", "channel"],
+      "additionalProperties": false,
+      "properties": {
+        "trigger": { "type": "string", "minLength": 5 },
+        "severity": { "$ref": "#/$defs/severity" },
+        "notify": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          ]
+        },
+        "channel": {
+          "oneOf": [
+            { "$ref": "#/$defs/channel" },
+            { "type": "array", "items": { "$ref": "#/$defs/channel" }, "minItems": 1 }
+          ]
+        },
+        "response_time": { "type": "string" },
+        "escalation_action": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,64 @@
+# capacity-planner — autonomy policy
+# Schema: schemas/agent-config.schema.json
+
+agent: capacity-planner
+version: 1
+
+autonomy:
+  autonomous:
+    - tool: proxmox_status
+      scope: read-only
+      description: Query node resource utilisation and VM density
+    - tool: pbs_status
+      scope: read-only
+      description: Query datastore capacity and growth metrics
+    - tool: host_health
+      scope: read-only
+      description: Collect memory, CPU, and disk usage data
+
+  notify:
+    - action: publish_capacity_report
+      description: Post weekly capacity summary to audit-logger
+
+  approve: []
+
+  forbidden:
+    - Migrate or resize any VM or container
+    - Expand storage pools or add disks
+    - Modify resource limits or quotas
+    - Execute any write operation against infrastructure
+
+quiet_hours:
+  start: "22:00"
+  end: "06:00"
+  timezone: "Europe/Vilnius"
+  override_for_severity: critical
+
+thresholds:
+  - metric: storage.free_percent
+    warning: 20
+    critical: 10
+    repeat_interval: 24h
+  - metric: memory.used_percent
+    warning: 80
+    critical: 90
+    repeat_interval: 4h
+  - metric: cpu.load_5m_percent
+    warning: 75
+    critical: 90
+    repeat_interval: 1h
+  - metric: vm.count_per_node
+    soft_limit: 40
+    hard_limit: 60
+    severity: warning
+    repeat_interval: 24h
+
+forecast:
+  projection_horizon: 90d
+  acceleration_alert_multiplier: 2.0
+  min_data_points: 7
+
+escalation:
+  on_critical_no_plan: human-operator
+  on_exhaustion_within_7d: human-operator
+  on_acceleration_spike: alert-router

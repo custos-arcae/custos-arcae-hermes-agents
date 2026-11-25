@@ -1,0 +1,55 @@
+# tool-access.yaml — Master register of every MCP tool and its permitted access level.
+# Schema: schemas/tool-access.schema.json
+#
+# Access levels:
+#   read-only   — may query; must not modify state
+#   governed    — may modify state only under an approved change plan
+#   forbidden   — must never be called by any agent
+#
+# Adding a new tool here is REQUIRED before it can be exposed via ca-mcp-server.
+
+version: 1
+
+tools:
+  - name: proxmox_status
+    module: ca_mcp_server.tools.proxmox_status
+    access: read-only
+    description: Query Proxmox VE node, VM, CT, and storage status
+    permitted_agents: [infra-monitor, patch-orchestrator, capacity-planner]
+    requires_audit_log: true
+
+  - name: pbs_status
+    module: ca_mcp_server.tools.pbs_status
+    access: read-only
+    description: Query PBS datastore health and backup job status
+    permitted_agents: [infra-monitor, backup-verifier, capacity-planner]
+    requires_audit_log: true
+
+  - name: host_health
+    module: ca_mcp_server.tools.host_health
+    access: read-only
+    description: Collect SMART, temperature, load, and journal data via SSH
+    permitted_agents: [infra-monitor, patch-orchestrator, backup-verifier, capacity-planner]
+    requires_audit_log: true
+
+  - name: connectivity_status
+    module: ca_mcp_server.tools.connectivity_status
+    access: read-only
+    description: ICMP reachability check across managed hosts
+    permitted_agents: [infra-monitor]
+    requires_audit_log: true
+
+  # ── Governed write tools (require approved change plan) ─────────────────────
+  # Uncomment and populate as write tools are implemented.
+  # - name: proxmox_migrate_vm
+  #   module: ca_mcp_server.tools.proxmox_migrate
+  #   access: governed
+  #   description: Live-migrate a VM between nodes
+  #   permitted_agents: [patch-orchestrator]
+  #   requires_audit_log: true
+  #   requires_approval: policies/approval-gates.yaml#vm-migration
+
+  # ── Forbidden tools (must never be implemented) ─────────────────────────────
+  # - name: pbs_prune_backups
+  #   access: forbidden
+  #   description: Delete or prune PBS backup data — permanently forbidden for all agents

@@ -1,0 +1,98 @@
+# escalation-matrix.yaml — When and how to wake a human operator.
+# Schema: schemas/policy.schema.json
+
+version: 1
+
+# Severity definitions used throughout the matrix
+severity_levels:
+  critical: Service down, data at risk, or security boundary breached
+  warning: Degraded but functional; action needed within 24 hours
+  info: Anomaly observed; no immediate action required
+
+# Escalation rules — evaluated top to bottom; first match wins
+rules:
+  - trigger: backup_consecutive_failures >= 2
+    severity: critical
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 1h
+
+  - trigger: pbs_datastore_free_percent < 10
+    severity: critical
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 4h
+
+  - trigger: network_hosts_unreachable >= 2
+    severity: critical
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 30m
+
+  - trigger: host_disk_smart_reallocated_sectors > 0
+    severity: warning
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 24h
+
+  - trigger: capacity_projected_exhaustion_days < 7
+    severity: critical
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 4h
+
+  - trigger: capacity_projected_exhaustion_days < 30
+    severity: warning
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 7d
+
+  - trigger: patch_rollback_failed
+    severity: critical
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 30m
+
+  - trigger: audit_store_unreachable_minutes > 5
+    severity: critical
+    notify: human-operator
+    channel: direct
+    response_time: 1h
+
+  - trigger: audit_integrity_checksum_mismatch
+    severity: critical
+    notify: human-operator
+    channel: direct
+    response_time: 30m
+
+  - trigger: cross_project_access_attempted
+    severity: critical
+    notify: [human-operator, security-reviewer]
+    channel: direct
+    response_time: 1h
+
+  - trigger: tool_response_ambiguous
+    severity: warning
+    notify: human-operator
+    channel: [alert-router, audit-logger]
+    response_time: 4h
+
+  - trigger: critical_alert_unacknowledged_minutes > 30
+    severity: critical
+    notify: human-operator
+    channel: direct
+    response_time: immediate
+    escalation_action: page_operator
+
+# Fallback — any condition not matched above
+default:
+  severity: warning
+  notify: human-operator
+  channel: [alert-router, audit-logger]
+  response_time: 24h
+
+# Notification channels
+channels:
+  alert-router: Internal Hermes alert bus
+  audit-logger: Immutable audit log entry
+  direct: Out-of-band notification (bypasses alert-router; used when alert-router itself may be affected)

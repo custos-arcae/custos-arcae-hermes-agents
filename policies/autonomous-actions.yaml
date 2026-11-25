@@ -1,0 +1,85 @@
+# autonomous-actions.yaml — Actions Hermes agents may take WITHOUT human approval.
+# Schema: schemas/policy.schema.json
+#
+# If an action is not listed here AND not in approval-gates.yaml, it is FORBIDDEN.
+# Adding to this file expands machine authority — requires two-reviewer sign-off.
+
+version: 1
+
+autonomous_actions:
+  # ── Read-only infrastructure queries ────────────────────────────────────────
+  - id: query-proxmox-status
+    action: Query Proxmox VE node, VM, CT, and storage status
+    tool: proxmox_status
+    scope: read-only
+    agents: [infra-monitor, patch-orchestrator, capacity-planner]
+    audit_required: true
+
+  - id: query-pbs-status
+    action: Query PBS datastore health and backup job status
+    tool: pbs_status
+    scope: read-only
+    agents: [infra-monitor, backup-verifier, capacity-planner]
+    audit_required: true
+
+  - id: collect-host-health
+    action: Collect SMART, temperature, load, and journal data from a managed host
+    tool: host_health
+    scope: read-only
+    agents: [infra-monitor, patch-orchestrator, backup-verifier, capacity-planner]
+    audit_required: true
+
+  - id: check-connectivity
+    action: ICMP reachability check across managed hosts
+    tool: connectivity_status
+    scope: read-only
+    agents: [infra-monitor]
+    audit_required: true
+
+  # ── Alert handling ──────────────────────────────────────────────────────────
+  - id: dispatch-alert
+    action: Route an alert to the correct destination per the routing table
+    agent: alert-router
+    audit_required: true
+
+  - id: deduplicate-alert
+    action: Suppress a repeat alert within its dedup window
+    agent: alert-router
+    audit_required: true
+
+  - id: correlate-alerts
+    action: Merge alerts from multiple agents sharing a root cause
+    agent: alert-router
+    audit_required: true
+
+  # ── Audit logging ───────────────────────────────────────────────────────────
+  - id: append-audit-entry
+    action: Write a new entry to the immutable audit log
+    agent: audit-logger
+    audit_required: false  # the log IS the audit
+
+  - id: buffer-audit-entry
+    action: Hold audit entries locally when the log store is temporarily unavailable
+    agent: audit-logger
+    audit_required: false
+
+  - id: flush-audit-buffer
+    action: Write buffered audit entries once the store is reachable
+    agent: audit-logger
+    audit_required: false
+
+  - id: redact-secret
+    action: Remove credentials or tokens from an audit entry before writing
+    agent: audit-logger
+    audit_required: true  # the redaction itself is logged
+
+  # ── Reporting ───────────────────────────────────────────────────────────────
+  - id: publish-capacity-report
+    action: Post weekly capacity summary to audit-logger
+    agent: capacity-planner
+    audit_required: true
+
+  - id: report-verification-result
+    action: Post backup verification report to audit-logger after each window
+    agent: backup-verifier
+    audit_required: true

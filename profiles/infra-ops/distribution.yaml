@@ -1,0 +1,44 @@
+# distribution.yaml — Hermes profile distribution manifest for infra-ops
+#
+# Install (repeatable) from a staging directory assembled from this repo — see
+# docs/deployment.md for the exact command. This manifest carries no secrets,
+# hostnames, generated state, or machine-specific paths; real values come from
+# the operator's $HERMES_HOME/.env at install/run time.
+#
+# Hermes v0.19.0 manifest schema (confirmed against hermes_cli/profile_distribution.py):
+#   name (required), version, description, hermes_requires, author, license,
+#   env_requires[] = {name, description, required, default}, distribution_owned[].
+# A `.env.template` is shipped as `.env.EXAMPLE`; distribution-owned paths are
+# replaced on update while user data (memories/sessions/.env) is preserved.
+
+name: infra-ops
+version: 0.1.0
+description: "Read-only infrastructure operations pilot (single tool: proxmox_status)"
+hermes_requires: ">=0.12.0"
+author: "custos-arcae infra-ops"
+license: "Proprietary"
+
+# Values the operator must provide via $HERMES_HOME/.env (never committed).
+# The pilot runs with CA_MCP_PILOT=1 (set in config.yaml's mcp_servers entry),
+# so proxmox_status is the only tool exposed and a single node must be authorized
+# in HERMES_INVENTORY_FILE.
+env_requires:
+  - name: PROXMOX_API_URL
+    description: "Proxmox VE API base URL (e.g. https://pve.example.internal:8006)"
+    required: true
+  - name: PROXMOX_API_TOKEN
+    description: "Read-only Proxmox API token (user@realm!tokenid=secret)"
+    required: true
+  - name: HERMES_INVENTORY_FILE
+    description: "Path to the authorized-target inventory YAML (one pilot node only)"
+    required: true
+
+# Paths shipped/owned by this distribution. SOUL.md and the reviewed skills are
+# staged from the repo by the assembly command. config.yaml carries the
+# mcp_servers registration that Hermes actually reads at session start
+# (tools/mcp_tool.py::_load_mcp_config reads config.yaml, never mcp.json).
+distribution_owned:
+  - SOUL.md
+  - config.yaml
+  - skills
+  - distribution.yaml

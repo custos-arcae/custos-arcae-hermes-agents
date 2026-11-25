@@ -1,0 +1,43 @@
+# audit-logger — autonomy policy
+# Schema: schemas/agent-config.schema.json
+
+agent: audit-logger
+version: 1
+
+autonomy:
+  autonomous:
+    - action: append_entry
+      description: Write a new audit entry to the immutable log store
+    - action: buffer_entry
+      description: Hold entries locally when the log store is temporarily unavailable
+    - action: flush_buffer
+      description: Write buffered entries once the log store is reachable again
+    - action: redact_secret
+      description: Remove credentials or tokens from an entry before writing
+
+  notify:
+    - action: report_store_unavailable
+      description: Notify human-operator when the audit store is unreachable > 5 minutes
+
+  approve: []
+
+  forbidden:
+    - Edit, overwrite, or delete any existing audit entry
+    - Drop an entry because the store is temporarily unavailable
+    - Write an entry containing an unredacted secret
+    - Grant any other agent write access to the audit store
+    - Modify the audit store retention or rotation policy
+
+integrity:
+  checksum_algorithm: sha256
+  verify_on_read: true
+  alert_on_checksum_mismatch: true
+
+retention:
+  min_retention_days: 365
+  rotation_policy: never-delete   # audit entries are permanent; rotate storage, not records
+
+escalation:
+  on_store_unreachable: human-operator
+  on_write_rejected: human-operator
+  on_integrity_failure: human-operator

@@ -1,0 +1,70 @@
+# infra-monitor — autonomy policy
+# Schema: schemas/agent-config.schema.json
+# Any change that EXPANDS autonomy requires two human reviewers (see SCOPE.md §Change-control).
+
+agent: infra-monitor
+version: 1
+
+autonomy:
+  # Actions this agent may take without human approval
+  autonomous:
+    - tool: proxmox_status
+      scope: read-only
+      description: Query Proxmox VE node, VM, and storage status
+    - tool: pbs_status
+      scope: read-only
+      description: Query PBS datastore and backup job status
+    - tool: host_health
+      scope: read-only
+      description: Collect SMART, temperature, and load data from hosts
+    - tool: connectivity_status
+      scope: read-only
+      description: Check network reachability between managed hosts
+
+  # Actions that require operator notification after execution
+  notify: []
+
+  # Actions that require explicit approval before execution
+  approve: []
+
+  # Actions that are permanently forbidden for this agent
+  forbidden:
+    - Reboot or shutdown any host or VM
+    - Modify any Proxmox or PBS configuration
+    - Delete or prune any backup
+    - Change network switch configuration
+    - Execute any write operation against infrastructure
+
+thresholds:
+  # Alert is raised when the metric crosses the value for the given duration
+  - metric: pbs.datastore.free_percent
+    operator: "<"
+    value: 10
+    severity: critical
+    repeat_interval: 1h
+  - metric: host.disk.smart.reallocated_sectors
+    operator: ">"
+    value: 0
+    severity: warning
+    repeat_interval: 24h
+  - metric: host.cpu.load_5m_percent
+    operator: ">"
+    value: 90
+    duration: 10m
+    severity: warning
+    repeat_interval: 1h
+  - metric: backup.job.consecutive_failures
+    operator: ">="
+    value: 2
+    severity: critical
+    repeat_interval: 6h
+  - metric: network.host.unreachable_count
+    operator: ">="
+    value: 2
+    severity: critical
+    repeat_interval: 15m
+
+escalation:
+  on_threshold_breach: alert-router
+  on_tool_error: audit-logger
+  on_ambiguity: human-operator

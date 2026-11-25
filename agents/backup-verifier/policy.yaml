@@ -1,0 +1,40 @@
+# backup-verifier — autonomy policy
+# Schema: schemas/agent-config.schema.json
+
+agent: backup-verifier
+version: 1
+
+autonomy:
+  autonomous:
+    - tool: pbs_status
+      scope: read-only
+      description: Query backup job status, datastore health, and verify task results
+    - tool: host_health
+      scope: read-only
+      description: Check host availability before and after a restore test
+
+  notify:
+    - action: report_verification_result
+      description: Post verification report to audit-logger after each backup window
+
+  approve:
+    - action: trigger_restore_test
+      description: Initiate a test restore to a scratch VM or sandbox host
+      requires: operator_signoff + target_is_scratch
+
+  forbidden:
+    - Delete, prune, or modify any backup data
+    - Trigger a restore to a production host
+    - Modify PBS job schedules or retention policies
+    - Suppress or alter verification results
+
+verification:
+  max_backup_age: 26h       # escalate if last successful backup is older than this
+  max_verify_age: 7d        # escalate if last successful verify is older than this
+  restore_test_interval: 30d # minimum days between scheduled restore tests
+  consecutive_failure_limit: 2 # escalate after this many consecutive job failures
+
+escalation:
+  on_job_failure: alert-router
+  on_datastore_corruption: human-operator
+  on_restore_test_failure: human-operator

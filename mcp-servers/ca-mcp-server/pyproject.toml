@@ -1,0 +1,73 @@
+[project]
+name = "ca-mcp-server"
+version = "0.1.0"
+description = "Custos Arcae MCP Server — exposes Proxmox, PBS, host, and network tools to Hermes agents"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "Custos Arcae", email = "dev@custos-arcae" }]
+classifiers = [
+  "Programming Language :: Python :: 3.12",
+  "Private :: Do Not Upload",
+]
+dependencies = [
+  # MCPServer API was introduced when FastMCP was renamed in mcp 2.0; tested on
+  # 2.3.0. Upper-bound to the 2.x line so a future 3.0 API change cannot silently
+  # break the build in CI (see docs/deployment.md, "Reproducibility").
+  "mcp>=2.0,<3.0",
+  "pydantic>=2.9",
+  "pyyaml>=6.0",
+  "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "respx>=0.21",
+  "ruff>=0.8",
+  "mypy>=1.13",
+]
+
+[project.scripts]
+ca-mcp-server = "ca_mcp_server.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ca_mcp_server"]
+
+[tool.ruff]
+src = ["src", "tests"]
+target-version = "py312"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ca_mcp_server"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+packages = ["ca_mcp_server"]
+
+[[tool.mypy.overrides]]
+# mcp ships inline types (py.typed); httpx does too. Only yaml lacks stubs unless
+# types-PyYAML is installed, so relax just that import.
+module = ["mcp.*", "httpx.*", "respx.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["yaml.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--tb=short -q"

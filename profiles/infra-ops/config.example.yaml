@@ -1,0 +1,80 @@
+# config.example.yaml — infra-ops profile configuration template
+#
+# Copy this file to config.yaml and populate with real values.
+# config.yaml is gitignored — never commit real credentials or hostnames.
+#
+# All secrets must come from environment variables or a vault reference,
+# never from this file directly.
+
+profile: infra-ops
+version: 1
+
+# ── Operator identity ─────────────────────────────────────────────────────────
+operator:
+  name: "${HERMES_OPERATOR_NAME}"          # env var — never hardcode
+  contact_channel: "${HERMES_OPERATOR_CHANNEL}"  # e.g. signal, matrix, email
+  escalation_timeout_minutes: 30
+
+# ── Proxmox VE ────────────────────────────────────────────────────────────────
+proxmox:
+  api_url: "${PROXMOX_API_URL}"            # e.g. https://pve.custos-arcae.internal:8006
+  api_token: "${PROXMOX_API_TOKEN}"        # format: user@realm!tokenid=UUID
+  nodes:
+    - name: pve-01
+      role: cluster-member
+    - name: pve-02
+      role: cluster-member
+  # Nodes listed here are the ONLY nodes agents may query.
+  # Adding a node requires a policy change approved by two reviewers.
+
+# ── Proxmox Backup Server ─────────────────────────────────────────────────────
+pbs:
+  api_url: "${PBS_API_URL}"                # e.g. https://pbs.custos-arcae.internal:8007
+  api_token: "${PBS_API_TOKEN}"
+  datastores:
+    - name: datastore-main
+      retention_days: 90
+    - name: datastore-archive
+      retention_days: 365
+
+# ── Managed hosts (SSH) ───────────────────────────────────────────────────────
+hosts:
+  ssh_known_hosts: "${SSH_KNOWN_HOSTS}"    # path to known_hosts file; never commit it
+  inventory:
+    - hostname: pve-01
+      ip: "${PVE01_IP}"
+      role: hypervisor
+    - hostname: pve-02
+      ip: "${PVE02_IP}"
+      role: hypervisor
+    - hostname: pbs-01
+      ip: "${PBS01_IP}"
+      role: backup-server
+    - hostname: switch-mgmt-01
+      ip: "${SWITCH01_IP}"
+      role: network-switch
+
+# ── Network ───────────────────────────────────────────────────────────────────
+network:
+  management_vlan: 100
+  storage_vlan: 200
+  # Agents may only probe hosts on these VLANs.
+  # See policies/cross-project-isolation.yaml for the full isolation policy.
+
+# ── Audit store ───────────────────────────────────────────────────────────────
+audit:
+  store_type: append-only-file             # or: syslog, s3-object-lock
+  path: "${HERMES_AUDIT_PATH}"             # e.g. /var/log/hermes/audit.log
+  integrity_checksum: sha256
+  min_retention_days: 365
+
+# ── Scheduling ────────────────────────────────────────────────────────────────
+schedules:
+  backup_window: "02:00-04:00"             # local time; do not schedule patches here
+  patch_window: "Saturday 06:00-10:00"     # standard maintenance window
+  capacity_review: "weekly Sunday 08:00"
+  quiet_hours:
+    start: "22:00"
+    end: "06:00"
+    timezone: "Europe/Vilnius"
+    override_for_severity: critical

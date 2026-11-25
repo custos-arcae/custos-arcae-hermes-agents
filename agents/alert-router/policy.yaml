@@ -1,0 +1,67 @@
+# alert-router — autonomy policy
+# Schema: schemas/agent-config.schema.json
+
+agent: alert-router
+version: 1
+
+autonomy:
+  autonomous:
+    - action: dispatch_alert
+      description: Route an alert to the matching destination in the routing table
+    - action: deduplicate_alert
+      description: Suppress a repeat alert within its dedup window
+    - action: correlate_alerts
+      description: Merge alerts from multiple agents that share a root cause
+
+  notify:
+    - action: escalate_unacknowledged
+      description: Notify human-operator when a critical alert exceeds escalation_timeout
+
+  approve: []
+
+  forbidden:
+    - Suppress or drop a critical alert without logging it
+    - Route any alert to a destination outside custos-arcae
+    - Modify the routing table at runtime
+    - Send alerts to external notification systems not listed in routing_table
+
+routing_table:
+  - match:
+      severity: critical
+    destinations: [human-operator, audit-logger]
+
+  - match:
+      severity: warning
+      source_agent: infra-monitor
+    destinations: [audit-logger]
+
+  - match:
+      severity: warning
+      source_agent: backup-verifier
+    destinations: [audit-logger]
+
+  - match:
+      severity: warning
+      source_agent: capacity-planner
+    destinations: [audit-logger]
+
+  - match:
+      alert_type: patch_required
+    destinations: [patch-orchestrator, audit-logger]
+
+  - match:
+      alert_type: backup_anomaly
+    destinations: [backup-verifier, audit-logger]
+
+  - match:
+      alert_type: resource_pressure
+    destinations: [capacity-planner, audit-logger]
+
+  # Fallback — any alert that matches no rule above
+  - match: {}
+    destinations: [human-operator, audit-logger]
+
+escalation:
+  escalation_timeout: 30m   # unacknowledged critical alerts escalate after this
+  on_no_route_match: human-operator
+  on_cross_project_alert: audit-logger  # log the attempt, then drop

@@ -1,0 +1,63 @@
+# cross-project-isolation.yaml — Firewall rules between custos-arcae projects.
+# Schema: schemas/policy.schema.json
+#
+# Hermes agents in this repo may ONLY touch resources listed under `permitted`.
+# Everything else is denied by default. Any exception requires a documented
+# approval per policies/approval-gates.yaml#cross-project-access.
+
+version: 1
+
+# The project this policy governs
+project: custos-arcae-hermes-agents
+
+# Default stance — deny all cross-project access
+default_policy: deny
+
+# Resources this project's agents are permitted to access
+permitted:
+  infrastructure:
+    - name: proxmox-ve-cluster
+      type: hypervisor
+      api: https://pve.custos-arcae.internal:8006
+      access: read-only
+
+    - name: pbs-primary
+      type: backup-server
+      api: https://pbs.custos-arcae.internal:8007
+      access: read-only
+
+    - name: managed-hosts
+      type: ssh
+      inventory: profiles/infra-ops/config.example.yaml  # template; real inventory is env-sourced
+      access: read-only
+
+  network:
+    - name: management-vlan
+      vlan_id: 100
+      access: read-only
+
+    - name: storage-vlan
+      vlan_id: 200
+      access: read-only
+
+  audit:
+    - name: hermes-audit-store
+      type: append-only-log
+      access: write  # audit-logger only; see agents/audit-logger/policy.yaml
+
+# Explicitly denied — even if an agent requests it
+denied:
+  - name: custos-arcae-datacenter
+    reason: Separate project; Ansible/IaC changes must go through that repo's own Hermes instance
+  - name: custos-arcae-applications
+    reason: Workload project; out of scope for infrastructure agents
+  - name: external-internet
+    reason: Agents must never make outbound calls to the public internet
+  - name: other-tenant-vlans
+    reason: VLANs not listed under permitted.network are off-limits
+
+# Enforcement
+enforcement:
+  mechanism: network-policy + api-token-scope
+  violation_action: block + log + escalate
+  escalation_target: [human-operator, security-reviewer]

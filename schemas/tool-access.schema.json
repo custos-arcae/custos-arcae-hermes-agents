@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tool-access.schema.json",
+  "title": "Tool Access Policy",
+  "description": "Validates policies/tool-access.yaml — the master register of MCP tools and their access levels.",
+  "type": "object",
+  "required": ["version", "tools"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "access", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Tool identifier; must match the MCP tool name exactly."
+          },
+          "module": {
+            "type": "string",
+            "pattern": "^ca_mcp_server\\.tools\\.[a-z_]+$",
+            "description": "Python module path implementing the tool."
+          },
+          "access": {
+            "type": "string",
+            "enum": ["read-only", "governed", "forbidden"],
+            "description": "read-only: query only. governed: write under approved change plan. forbidden: never call."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "permitted_agents": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true,
+            "description": "Agent names allowed to invoke this tool. Omit for forbidden tools."
+          },
+          "requires_audit_log": {
+            "type": "boolean",
+            "default": true,
+            "description": "Every invocation must be recorded by audit-logger."
+          },
+          "requires_approval": {
+            "type": "string",
+            "description": "Reference to the approval gate ID in policies/approval-gates.yaml."
+          }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "access": { "const": "governed" } } },
+            "then": { "required": ["requires_approval", "permitted_agents"] }
+          },
+          {
+            "if": { "properties": { "access": { "const": "forbidden" } } },
+            "then": { "not": { "required": ["permitted_agents"] } }
+          }
+        ]
+      }
+    }
+  }
+}

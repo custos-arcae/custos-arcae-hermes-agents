@@ -1,0 +1,31 @@
+# distribution.config.yaml — infra-ops packaged MCP registration (committed, secret-free)
+#
+# The assembly command stages this file as `config.yaml` in the distribution
+# source directory (see docs/deployment.md), because `profiles/*/config.yaml` is
+# gitignored to keep real hostnames/IPs out of Git. This template carries none.
+#
+# Hermes v0.19.0 reads MCP servers ONLY from this file's `mcp_servers` map at
+# session start (tools/mcp_tool.py::_load_mcp_config). A standalone `mcp.json`
+# is copied into the profile by the distribution installer but is never read at
+# runtime, so the pilot registration lives here — this is the supported
+# packaged-session path (no manual `hermes mcp add` required).
+#
+# Portable by construction: no secrets, hostnames, absolute machine paths, or
+# generated state. Real upstream values are supplied by the operator through
+# $HERMES_HOME/.env (PROXMOX_API_URL / PROXMOX_API_TOKEN / HERMES_INVENTORY_FILE);
+# they are resolved by the server process at call time, not stored here.
+
+profile: infra-ops
+version: 1
+
+mcp_servers:
+  ca-infra:
+    # Console script installed by `uv tool install ./mcp-servers/ca-mcp-server`
+    # (lands on PATH, e.g. ~/.local/bin/ca-mcp-server). Resolved at spawn time.
+    command: ca-mcp-server
+    args: []
+    env:
+      # Locks the server to the pilot scope: only `proxmox_status` is registered
+      # and it is confined to exactly one authorized node.
+      CA_MCP_PILOT: "1"
+    enabled: true

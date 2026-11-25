@@ -1,0 +1,3 @@
+# Learned procedures for infra-monitor.
+# Add skill files here as the agent accumulates operational knowledge.
+# Format: one Markdown file per skill, following skills/*/SKILL.md conventions.

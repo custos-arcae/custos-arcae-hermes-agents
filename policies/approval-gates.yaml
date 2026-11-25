@@ -1,0 +1,62 @@
+# approval-gates.yaml — Actions that ALWAYS require explicit human approval before execution.
+# Schema: schemas/policy.schema.json
+#
+# Two-reviewer rule applies to any change that ADDS a gate or RELAXES an existing one.
+# See SCOPE.md §Change-control.
+
+version: 1
+
+gates:
+  - id: host-reboot
+    action: Reboot any physical host
+    reason: Unplanned reboot risks VM downtime and storage corruption
+    approver: human-operator
+    requires: maintenance_window + vm_migration_plan
+
+  - id: vm-shutdown
+    action: Shut down or stop any VM or container
+    reason: May interrupt running workloads
+    approver: human-operator
+    requires: workload_owner_confirmation
+
+  - id: apply-patch
+    action: Install any software patch on a managed host
+    reason: Patches carry regression and reboot risk
+    approver: human-operator
+    requires: approved_patch_plan + backup_confirmed + rollback_procedure
+
+  - id: kernel-update
+    action: Apply a kernel update
+    reason: Requires reboot; highest regression risk
+    approver: human-operator
+    requires: approved_patch_plan + maintenance_window + backup_confirmed
+
+  - id: storage-expand
+    action: Expand a storage pool or add a disk
+    reason: Irreversible; affects data layout
+    approver: human-operator
+    requires: capacity_plan + backup_confirmed
+
+  - id: network-config-change
+    action: Modify switch, VLAN, or firewall configuration
+    reason: Misconfiguration can isolate hosts or expose services
+    approver: human-operator
+    requires: change_plan + rollback_procedure
+
+  - id: restore-to-production
+    action: Restore a backup to a production host or VM
+    reason: Overwrites live data
+    approver: human-operator
+    requires: confirmed_target + data_loss_acknowledgement
+
+  - id: autonomy-expansion
+    action: Add a new autonomous or notify action to any agent policy.yaml
+    reason: Expands machine authority without human in the loop
+    approver: human-operator + security-reviewer
+    requires: two_reviewer_signoff + threat_model_update
+
+  - id: cross-project-access
+    action: Read from or write to any resource outside custos-arcae
+    reason: Violates project isolation boundary
+    approver: human-operator
+    requires: explicit_exception_document + audit_log_entry

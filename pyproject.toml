@@ -1,0 +1,59 @@
+[project]
+name = "custos-arcae-hermes-agents"
+version = "0.1.0"
+description = "Configuration-as-code repository for the Hermes AI agent fleet"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "Custos Arcae", email = "dev@custos-arcae" }]
+classifiers = [
+  "Programming Language :: Python :: 3.12",
+  "Private :: Do Not Upload",
+]
+# Root package has no runtime dependencies.
+# ca-mcp-server dependencies live in mcp-servers/ca-mcp-server/pyproject.toml.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "pyyaml>=6.0",
+  "jsonschema>=4.23",
+]
+
+# No [build-system] — this is a configuration repository, not an installable package.
+# Install dev tools with:
+#   uv pip install pytest pytest-asyncio ruff mypy pyyaml jsonschema
+
+# ── Ruff ──────────────────────────────────────────────────────────────────────
+[tool.ruff]
+src = ["tests"]
+target-version = "py312"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+# ── Mypy ──────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[[tool.mypy.overrides]]
+# jsonschema and pyyaml do not ship inline types; skip stub requirement so CI
+# does not need types-jsonschema / types-PyYAML installed separately.
+module = ["jsonschema.*", "yaml.*"]
+ignore_missing_imports = true
+
+# ── Pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--tb=short -q"
+markers = [
+  "integration: tests requiring live infrastructure (not run in CI)",
+]
